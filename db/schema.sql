@@ -1,8 +1,6 @@
 -- 3 talbes should be included: department, role, employee
-
-
-DROP IF EXISTS employee_management_db;
-CREATE employee_management_db;
+DROP DATABASE IF EXISTS employee_management_db;
+CREATE DATABASE employee_management_db;
 
 USE employee_management_db;
 
