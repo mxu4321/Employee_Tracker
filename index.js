@@ -13,9 +13,9 @@ const mainMenu = () => {
       type: "list",
       message: "What would you like to do",
       choices: [
-        "View All Employees",
-        "View All Employees By Department",
-        "View All Employees By Manager",
+        "View All Employees", // ✅
+        "View All Employees By Department", // ✅
+        "View All Employees By Manager", // ✅
         "Add Employee",
         "Remove Employee",
         "Update Employee Role",
@@ -38,17 +38,18 @@ const mainMenu = () => {
           ViewAllEmployees();
           break;
 
-        // department: marketing, accounting, engineering, human resources, legal
+        // --- ViewAllEmployeesByDepartment✅ ------
         case "View All Employees By Department":
-          database.ViewAllEmployeesByDepartment();
+          ViewAllEmployeesByDepartment();
+          break;
 
-        // display a list includes all managers: first name, last name
+        // --- ViewAllEmployeesByManager✅ ----
         case "View All Employees By Manager":
-          database.ViewAllEmployeesByManager();
+          ViewAllEmployeesByManager();
           break;
 
         case "Add Employee":
-          database.AddEmployee();
+          AddEmployee();
           break;
 
         case "Remove Employee":
@@ -110,6 +111,144 @@ function ViewAllEmployees() {
   });
 }
 
+// =============view all employees by department===========
+function ViewAllEmployeesByDepartment() {
+  // department: marketing, accounting, engineering, human resources, legal
+  // -- another inquire prompt needed for department selection display
+  inquirer
+    .prompt({
+      name: "department",
+      type: "list",
+      message: "Which department would you like to view?",
+      choices: [
+        "Marketing",
+        "Accounting",
+        "Engineering",
+        "Human Resources",
+        "Legal",
+      ],
+    })
+    .then((answer) => {
+      // console.log(answer);
+      switch (answer.department) {
+        case "Marketing":
+          return myViewEmployeesByDepartment("Marketing");
+        case "Accounting":
+          return myViewEmployeesByDepartment("Accounting");
+        case "Engineering":
+          return myViewEmployeesByDepartment("Engineering");
+        case "Human Resources":
+          return myViewEmployeesByDepartment("Human Resources");
+        case "Legal":
+          return myViewEmployeesByDepartment("Legal");
+      }
+    });
+  // display ee by department, with id, first name, last name, title
+  function myViewEmployeesByDepartment(department) {
+    const query = `
+     SELECT employee.id, 
+     employee.first_name, 
+     employee.last_name, 
+     role.title, 
+     department.name AS department 
+     FROM employee 
+     LEFT JOIN role ON employee.role_id = role.id 
+     LEFT JOIN department ON role.department_id = department.id 
+     WHERE department.name = ?;`;
+    connection.query(query, department, (err, data) => {
+      if (err) throw err;
+      console.table(data);
+      mainMenu();
+    });
+  }
+}
+
+// =============view all employees by manager===========
+function ViewAllEmployeesByManager() {
+  // display a list includes all managers: first name, last name
+  const query = `SELECT 
+   employee.id, 
+   employee.first_name, 
+   employee.last_name, 
+   role.title, 
+   department.name AS 
+   department, 
+   CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+   FROM employee 
+   LEFT JOIN role ON employee.role_id = role.id 
+   LEFT JOIN department ON role.department_id = department.id 
+   LEFT JOIN employee manager ON manager.id = employee.manager_id 
+   ORDER BY manager;`;
+  connection.query(query, (err, data) => {
+    if (err) throw err;
+    console.table(data);
+    mainMenu();
+  });
+}
+
+// =============add employee===========
+// function AddEmployee() {
+//    // display a list includes all roles
+//    const roles = displayAllRoles();
+//    function displayAllRoles () {
+//       const query = `SELECT * FROM role;`;
+//       connection.query(query, (err, data) => {
+//          if (err) throw err;
+//          console.table(data);
+//       });
+//    }
+//    // display a list includes all managers
+//    const managers = displayAllManagers();
+//    // display managers's first name, last name
+//    function displayAllManagers () {
+//       const query = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
+//       connection.query(query, (err, data) => {
+//          if (err) throw err;
+//          console.table(data);
+//       });
+//    }
+
+//   // add ee: first name, last name, role, manager
+//   inquirer
+//     .prompt([
+//       {
+//         name: "first_name",
+//         type: "input",
+//         message: "What is the employee's first name?",
+//       },
+//       {
+//         name: "last_name",
+//         type: "input",
+//         message: "What is the employee's last name?",
+//       },
+//       {
+//         name: "role",
+//         type: "list",
+//         message: "What is the employee's role?",
+//         choices: roles,
+//       },
+//       {
+//         name: "manager",
+//         type: "list",
+//         message: "Who is the employee's manager?",
+//         choices: managers,
+//       },
+//     ])
+//     .then((answer) => {
+//       // add ee to db based on user input
+//       const query = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
+//       connection.query(
+//          query,
+//          [answer.first_name, answer.last_name, answer.role, answer.manager],
+//          (err, data) => {
+//              if (err) throw err;
+//              console.table(data);
+//              mainMenu();
+//           }
+//       );
+//     });
+// }
+
 // ==========view all roles===========
 function ViewAllRoles() {
   // all roles: id, title, salary, department
@@ -168,8 +307,10 @@ function AddRole() {
           [title, salary, department_name],
           (err, res) => {
             if (err) throw err;
-            console.log(`\n-------------------\n Role ${title} has been added!\n`);
-            ViewAllRoles(); 
+            console.log(
+              `\n-------------------\n Role ${title} has been added!\n`
+            );
+            ViewAllRoles();
           }
         );
       });

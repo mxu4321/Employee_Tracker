@@ -19,77 +19,77 @@ class Database {
   //   });
   // }
   // ---------ViewAllEmployeesByDepartment()✅------------
-  ViewAllEmployeesByDepartment() {
-    // department: marketing, accounting, engineering, human resources, legal
-    // -- another inquire prompt needed for department selection display
-    inquirer
-      .prompt({
-        name: "department",
-        type: "list",
-        message: "Which department would you like to view?",
-        choices: [
-          "Marketing",
-          "Accounting",
-          "Engineering",
-          "Human Resources",
-          "Legal",
-        ],
-      })
-      .then((answer) => {
-        // console.log(answer);
-        switch (answer.department) {
-          case "Marketing":
-            return myViewEmployeesByDepartment("Marketing");
-          case "Accounting":
-            return myViewEmployeesByDepartment("Accounting");
-          case "Engineering":
-            return myViewEmployeesByDepartment("Engineering");
-          case "Human Resources":
-            return myViewEmployeesByDepartment("Human Resources");
-          case "Legal":
-            return myViewEmployeesByDepartment("Legal");
-        }
-      });
-    // display ee by department, with id, first name, last name, title
-    function myViewEmployeesByDepartment(department) {
-      const query = `
-      SELECT employee.id, 
-      employee.first_name, 
-      employee.last_name, 
-      role.title, 
-      department.name AS department 
-      FROM employee 
-      LEFT JOIN role ON employee.role_id = role.id 
-      LEFT JOIN department ON role.department_id = department.id 
-      WHERE department.name = ?;`;
-      connection.query(query, department, (err, data) => {
-        if (err) throw err;
-        console.table(data);
-      });
-    }
-  }
+  // ViewAllEmployeesByDepartment() {
+  //   // department: marketing, accounting, engineering, human resources, legal
+  //   // -- another inquire prompt needed for department selection display
+  //   inquirer
+  //     .prompt({
+  //       name: "department",
+  //       type: "list",
+  //       message: "Which department would you like to view?",
+  //       choices: [
+  //         "Marketing",
+  //         "Accounting",
+  //         "Engineering",
+  //         "Human Resources",
+  //         "Legal",
+  //       ],
+  //     })
+  //     .then((answer) => {
+  //       // console.log(answer);
+  //       switch (answer.department) {
+  //         case "Marketing":
+  //           return myViewEmployeesByDepartment("Marketing");
+  //         case "Accounting":
+  //           return myViewEmployeesByDepartment("Accounting");
+  //         case "Engineering":
+  //           return myViewEmployeesByDepartment("Engineering");
+  //         case "Human Resources":
+  //           return myViewEmployeesByDepartment("Human Resources");
+  //         case "Legal":
+  //           return myViewEmployeesByDepartment("Legal");
+  //       }
+  //     });
+  //   // display ee by department, with id, first name, last name, title
+  //   function myViewEmployeesByDepartment(department) {
+  //     const query = `
+  //     SELECT employee.id, 
+  //     employee.first_name, 
+  //     employee.last_name, 
+  //     role.title, 
+  //     department.name AS department 
+  //     FROM employee 
+  //     LEFT JOIN role ON employee.role_id = role.id 
+  //     LEFT JOIN department ON role.department_id = department.id 
+  //     WHERE department.name = ?;`;
+  //     connection.query(query, department, (err, data) => {
+  //       if (err) throw err;
+  //       console.table(data);
+  //     });
+  //   }
+  // }
 
-  // ------ 显示方式可能有误 ---------
-  ViewAllEmployeesByManager() {
-    // display a list includes all managers: first name, last name
-    const query = `SELECT 
-    employee.id, 
-    employee.first_name, 
-    employee.last_name, 
-    role.title, 
-    department.name AS 
-    department, 
-    CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
-    FROM employee 
-    LEFT JOIN role ON employee.role_id = role.id 
-    LEFT JOIN department ON role.department_id = department.id 
-    LEFT JOIN employee manager ON manager.id = employee.manager_id 
-    ORDER BY manager;`;
-    connection.query(query, (err, data) => {
-      if (err) throw err;
-      console.table(data);
-    });
-  }
+  // ------ show managers first ✅ ---------
+  // ViewAllEmployeesByManager() {
+  //   // display a list includes all managers: first name, last name
+  //   const query = `SELECT 
+  //   employee.id, 
+  //   employee.first_name, 
+  //   employee.last_name, 
+  //   role.title, 
+  //   department.name AS 
+  //   department, 
+  //   CONCAT(manager.first_name, ' ', manager.last_name) AS manager 
+  //   FROM employee 
+  //   LEFT JOIN role ON employee.role_id = role.id 
+  //   LEFT JOIN department ON role.department_id = department.id 
+  //   LEFT JOIN employee manager ON manager.id = employee.manager_id 
+  //   ORDER BY manager;`;
+  //   connection.query(query, (err, data) => {
+  //     if (err) throw err;
+  //     console.table(data);
+  //   });
+  // }
 
   // ⚠️ throw new Error('You must provide a `' + name + '` parameter');
   AddEmployee() {
