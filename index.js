@@ -1,5 +1,4 @@
 const inquirer = require("inquirer");
-const database = require("./db.js");
 const connection = require("./db/connection.js");
 require("console.table");
 
@@ -20,14 +19,14 @@ const mainMenu = () => {
         "Remove Employee",
         "Update Employee Role",
         "Update Employee Manager",
-        "View All Roles",
-        "Add Role",
-        "Remove Role",
-        "View All Departments",
-        "Add Department",
-        "Remove Department",
-        "View Total Utilized Budget of a Department",
-        "Exit",
+        "View All Roles", // ✅
+        "Add Role", // ✅
+        "Remove Role", // ✅
+        "View All Departments", // ✅
+        "Add Department", // ✅
+        "Remove Department", // ✅
+        "View Total Utilized Budget of a Department", // ✅
+        "Exit", // ✅
       ],
     })
     .then((answer) => {
@@ -64,26 +63,32 @@ const mainMenu = () => {
           UpdateEmployeeManager();
           break;
 
+        // --- ViewAllRoles✅ ----
         case "View All Roles":
           ViewAllRoles();
           break;
 
+        // --- AddRole✅ ----
         case "Add Role":
           AddRole();
           break;
 
+        // --- RemoveRole✅ ----
         case "Remove Role":
           RemoveRole();
           break;
 
+        // --- ViewAllDepartments✅ ----
         case "View All Departments":
-          database.ViewAllDepartments();
+          ViewAllDepartments();
           break;
 
+        // --- AddDepartment✅ ----
         case "Add Department":
           AddDepartment();
           break;
 
+        // --- RemoveDepartment✅ ----
         case "Remove Department":
           RemoveDepartment();
           break;
@@ -93,7 +98,7 @@ const mainMenu = () => {
           ViewTotalUtilizedBudgetByDepartment();
           break;
 
-      // --- Exit✅ ----
+        // --- Exit✅ ----
         case "Exit":
           Exit();
           break;
@@ -188,136 +193,189 @@ function ViewAllEmployeesByManager() {
   });
 }
 
+function myFunction() {
+  const query2 = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
+  connection.query(query2, (err, data) => {
+    if (err) throw err;
+    console.log("@@@", data);
+    // make a new array to store all manager names
+    const managers = data.map((item) => `${item.first_name} ${item.last_name}`);
+
+    return managers;
+  });
+}
 // =============⚠️add employee⚠️===========
-// Error: Incorrect integer value: 'director' for column 'role_id' at row 1
 function AddEmployee() {
   // display a list as choice includes all roles
+
   const query1 = `SELECT title FROM role;`;
+
   connection.query(query1, (err, data) => {
     if (err) throw err;
     // make a new array to store all role titles
     const roles = data.map((item) => `${item.title}`);
 
-    // display a list as choice includes all managers
-    const query2 = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
-    connection.query(query2, (err, data) => {
+    //display a list as choice includes all managers
+
+    // add ee: first name, last name, role, manager
+    inquirer
+      .prompt([
+        {
+          name: "first_name",
+          type: "input",
+          message: "What is the employee's first name?",
+        },
+        {
+          name: "last_name",
+          type: "input",
+          message: "What is the employee's last name?",
+        },
+        {
+          name: "role",
+          type: "list",
+          message: "What is the employee's role?",
+          choices: roles,
+        },
+      ])
+      .then((answer) => {
+        console.log("answer1",answer);
+        const query2 = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
+        connection.query(query2, (err, data) => {
+          if (err) throw err;
+          console.log("@@@", data);
+          // make a new array to store all manager names
+          const managers = data.map(
+            (item) => `${item.first_name} ${item.last_name}`
+          );
+
+          inquirer.prompt([
+            {
+              name: "manager",
+              type: "list",
+              message: "Who is the employee's manager?",
+              choices: [...managers, "None"], // shows undefined and none
+            },
+          ]);
+        });
+      })
+      .then((answer) => {
+        console.log("answer2", answer);
+        // add ee to db based on user input
+        const query = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
+        connection.query(
+          query,
+          [answer.first_name, answer.last_name, answer.role, answer.manager],
+          (err, data) => {
+            if (err) throw err;
+            console.table(data);
+            mainMenu();
+          }
+        );
+      });
+  });
+}
+
+// ⚠️============ TODO: remove employee: NOT removed===========
+function RemoveEmployee() {
+  // remove ee: first name, last name, role, manager
+  // --- ee array needed, for user to remove from
+  // --- new prompt to give hint for user's input needed
+  const query = `SELECT 
+  employee.id, 
+  employee.first_name, 
+  employee.last_name, 
+  role.title, 
+  department.name AS 
+  department, 
+  role.salary, 
+  CONCAT(manager.first_name, ' ', manager.last_name) AS 
+  manager FROM 
+  employee LEFT JOIN role ON 
+  employee.role_id = role.id 
+  LEFT JOIN department ON 
+  role.department_id = department.id LEFT JOIN 
+  employee manager ON 
+  manager.id = employee.manager_id;`;
+  connection.query(query, (err, data) => {
+    if (err) throw err;
+    const employees = data.map(
+      (item) => `${item.first_name} ${item.last_name}`
+    );
+    inquirer
+      .prompt({
+        name: "employee",
+        type: "list",
+        message: "Which employee would you like to remove?",
+        choices: [...employees],
+      })
+      .then((answer) => {
+        // delete ee from db based on user input
+        const query = `DELETE FROM employee WHERE first_name = ? AND last_name = ?`;
+        console.table(`You have removed ${answer.employee} from the database.`);
+        ViewAllEmployees();
+      });
+  });
+}
+
+// ⚠️========== TODO: update employee role ==========
+function UpdateEmployeeRole() {
+  // update ee role: first name, last name, role, manager
+  // --- select all ee from table and map to an array, for user to update from
+  const queryEE = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;`;
+  connection.query(queryEE, (err, data) => {
+    if (err) throw err;
+    // make a new array to store all ee names
+    const employees = data.map(
+      (item) => `${item.first_name} ${item.last_name}`
+    );
+    // --- new prompt to give hint for user's input needed
+    inquirer.prompt({
+      name: "employee",
+      type: "list",
+      message: "Which employee would you like to update?",
+      choices: employees,
+    });
+  });
+}
+
+// ⚠️========== TODO: update employee manager ==========
+function UpdateEmployeeManager() {
+  // updated ee manager: first name, last name, role, department, salary
+  // --- select all managers from ee table and map to an array, for user to update from
+  const queryManager = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
+  connection
+    .query(queryManager, (err, data) => {
       if (err) throw err;
       // make a new array to store all manager names
       const managers = data.map(
         (item) => `${item.first_name} ${item.last_name}`
       );
-
-      // add ee: first name, last name, role, manager
-      inquirer
-        .prompt([
-          {
-            name: "first_name",
-            type: "input",
-            message: "What is the employee's first name?",
-          },
-          {
-            name: "last_name",
-            type: "input",
-            message: "What is the employee's last name?",
-          },
-          {
-            name: "role",
-            type: "list",
-            message: "What is the employee's role?",
-            choices: roles,
-          },
-          {
-            name: "manager",
-            type: "list",
-            message: "Who is the employee's manager?",
-            choices: [managers, "None"],
-          },
-        ])
-        .then((answer) => {
-          // add ee to db based on user input
-          const query = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
-          connection.query(
-            query,
-            [answer.first_name, answer.last_name, answer.role, answer.manager],
-            (err, data) => {
-              if (err) throw err;
-              console.table(data);
-              mainMenu();
-            }
-          );
-        });
-    });
-  });
-}
-
-// ============ TODO: remove employee ===========
-function RemoveEmployee() {
-  // remove ee: first name, last name, role, manager
-  // --- ee array needed, for user to remove from
-  // --- new prompt to give hint for user's input needed
-  const query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;`;
-  inquirer.prompt({
-    name: "employee",
-    type: "list",
-    message: "Which employee would you like to remove?",
-    choices: function () {
-      return new Promise((resolve, reject) => {
-        connection.query(query, (error, results) => {
-          if (error) {
-            return reject(error);
-          }
-          resolve(
-            results.map((result) => `${result.first_name} ${result.last_name}`)
-          );
-        });
+      // --- new prompt to give hint for user's input needed
+      inquirer.prompt({
+        name: "manager",
+        type: "list",
+        message: "Which manager would you like to update?",
+        choices: managers,
       });
-    },
-  });
-  // .then((answer) => {
-  //   // console.log(answer);
-  //   switch (answer.employee) {
-  //     case "Marketing":
-  //       return myViewEmployeesByDepartment("Marketing");
-  //     case "Accounting":
-  //       return myViewEmployeesByDepartment("Accounting");
-  //     case "Engineering":
-  //       return myViewEmployeesByDepartment("Engineering");
-  //     case "Human Resources":
-  //       return myViewEmployeesByDepartment("Human Resources");
-  //     case "Legal":
-  //       return myViewEmployeesByDepartment("Legal");
-  //   }
-  // });
+    })
+    .then((answer) => {
+      // console.log(answer);
+      switch (answer.manager) {
+        case "Marketing":
+          return myViewEmployeesByDepartment("Marketing");
+        case "Accounting":
+          return myViewEmployeesByDepartment("Accounting");
+        case "Engineering":
+          return myViewEmployeesByDepartment("Engineering");
+        case "Human Resources":
+          return myViewEmployeesByDepartment("Human Resources");
+        case "Legal":
+          return myViewEmployeesByDepartment("Legal");
+      }
+    });
 
-  // function myViewEmployeesByDepartment(department) {
-  //   const query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager
-  //                 FROM employee
-  //                 LEFT JOIN role ON employee.role_id = role.id
-  //                 LEFT JOIN department ON role.department_id = department.id
-  //                 LEFT JOIN employee manager ON manager.id = employee.manager_id
-  //                 WHERE department.name = ?;`;
-  //   connection.query(query, [department], (error, results) => {
-  //     if (error) {
-  //       console.error(error);
-  //       return;
-  //     }
-  //     console.table(results);
-  //   });
-  // }
+  function myViewEmployeesByDepartment(department) {}
 }
-
-// ========== TODO: update employee role ==========
-function UpdateEmployeeRole() {
-  // update ee role: first name, last name, role, manager
-  const query = `UPDATE employee SET role_id = ? WHERE id = ?;`;
-  // connection.query(query, (data) => {
-  //     console.table(data);
-  //     }
-  // );
-}
-
-// ========== TODO: update employee manager ==========
-function UpdateEmployeeManager() {}
 
 // ==========view all roles===========
 function ViewAllRoles() {
@@ -443,36 +501,99 @@ function RemoveRole() {
   });
 }
 
-// ========= TODO: view all departments ==========
+// ========= view all departments ==========
 function ViewAllDepartments() {
   // all departments: id, name
-  const query = `SELECT department.id, department.name FROM department;`;
+  const query = `SELECT 
+  department.id, 
+  department.name FROM 
+  department;`;
   connection.query(query, (err, data) => {
     if (err) throw err;
     console.table(data);
+    mainMenu();
   });
 }
 
-// ========= TODO: add department ==========
+// ========= add department ==========
 function AddDepartment() {
   // add department: name
-  // --- department array needed, for user to add on to
-  // --- new prompt to give hint for user's input needed
-  const query = `INSERT INTO department (name) VALUES (?);`;
-  // connection.query(query, (data) => {
-  //     console.table(data);
-  //     }
-  // );
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "name",
+        message: "What is the name of the department?",
+      },
+    ])
+    .then((data) => {
+      const { name } = data;
+      connection.query(
+        `INSERT INTO department (name) VALUES (?)`,
+        [name],
+        (err, res) => {
+          if (err) throw err;
+          console.log(
+            `\n-------------------\n Department ${name} has been added!\n`
+          );
+          ViewAllDepartments();
+        }
+      );
+    });
 }
 
-// ========= TODO: remove department ==========
+// ========= remove department ==========
 function RemoveDepartment() {
   // remove department: name
-  const query = `DELETE FROM department WHERE id = ?;`;
-  // connection.query(query, (data) => {
-  //     console.table(data);
-  //     }
-  // );
+  // prompt user to select department to remove
+  connection.query("SELECT department.name FROM department", (err, data) => {
+    // make a new array to store all department names
+    const departments = data.map((item) => `${item.name}`);
+    // --- new prompt to give hint for user's input needed
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "name",
+          message: "Select a department you want to remove?",
+          choices: [...departments],
+        },
+      ])
+      .then((data) => {
+        const { name } = data;
+
+        // Check if department exists. If not, display a message. If yes, delete the department.
+        connection.query(
+          "SELECT * FROM department WHERE name = '" + name + "'",
+          (err, res) => {
+            if (err) throw err;
+            if (res.length === 0) {
+              console.log(`Department with name ${data.name} does not exist.`);
+            }
+
+            if (res.length !== 0) {
+              connection.query(
+                "DELETE FROM department WHERE name = '" + name + "'",
+                (err, res) => {
+                  if (err) throw err;
+                  if (res.affectedRows === 0) {
+                    console.log(
+                      `Department with name ${data.name} does not exist.`
+                    );
+                  } else {
+                    console.table({
+                      message: `\n-------------------\n Department with name ${data.name} has been removed.\n`,
+                      affectedRows: res.affectedRows,
+                    });
+                    ViewAllDepartments();
+                  }
+                }
+              );
+            }
+          }
+        );
+      });
+  });
 }
 
 // ============ total utilized budget of a department ===========
