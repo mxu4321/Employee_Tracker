@@ -15,8 +15,8 @@ const mainMenu = () => {
         "View All Employees", // ✅
         "View All Employees By Department", // ✅
         "View All Employees By Manager", // ✅
-        "Add Employee",
-        "Remove Employee",
+        "Add Employee", // ✅
+        "Remove Employee", // ✅
         "Update Employee Role",
         "Update Employee Manager",
         "View All Roles", // ✅
@@ -32,17 +32,14 @@ const mainMenu = () => {
     .then((answer) => {
       // console.log(answer);
       switch (answer.start) {
-        // --- ViewAllEmployees✅ ------
         case "View All Employees":
           ViewAllEmployees();
           break;
 
-        // --- ViewAllEmployeesByDepartment✅ ------
         case "View All Employees By Department":
           ViewAllEmployeesByDepartment();
           break;
 
-        // --- ViewAllEmployeesByManager✅ ----
         case "View All Employees By Manager":
           ViewAllEmployeesByManager();
           break;
@@ -63,42 +60,34 @@ const mainMenu = () => {
           UpdateEmployeeManager();
           break;
 
-        // --- ViewAllRoles✅ ----
         case "View All Roles":
           ViewAllRoles();
           break;
 
-        // --- AddRole✅ ----
         case "Add Role":
           AddRole();
           break;
 
-        // --- RemoveRole✅ ----
         case "Remove Role":
           RemoveRole();
           break;
 
-        // --- ViewAllDepartments✅ ----
         case "View All Departments":
           ViewAllDepartments();
           break;
 
-        // --- AddDepartment✅ ----
         case "Add Department":
           AddDepartment();
           break;
 
-        // --- RemoveDepartment✅ ----
         case "Remove Department":
           RemoveDepartment();
           break;
 
-        // --- ViewTotalUtilizedBudgetByDepartment✅ ----
         case "View Total Utilized Budget of a Department":
           ViewTotalUtilizedBudgetByDepartment();
           break;
 
-        // --- Exit✅ ----
         case "Exit":
           Exit();
           break;
@@ -193,33 +182,30 @@ function ViewAllEmployeesByManager() {
   });
 }
 
-function myFunction() {
-  const query2 = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
-  connection.query(query2, (err, data) => {
-    if (err) throw err;
-    console.log("@@@", data);
-    // make a new array to store all manager names
-    const managers = data.map((item) => `${item.first_name} ${item.last_name}`);
-
-    return managers;
-  });
-}
-// =============⚠️add employee⚠️===========
+// =============add employee ===========
+// first name, last name, role, and manager
 function AddEmployee() {
+  let userInput1;
   // display a list as choice includes all roles
+  const query = `SELECT id, title FROM role WHERE title NOT LIKE '%Manager%';`;
 
-  const query1 = `SELECT title FROM role;`;
+  Promise.resolve()
+    .then(() => {
+      return new Promise((resolve, reject) => {
+        connection.query(query, (err, data) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+    })
+    .then((rolesData) => {
+      // make a new array to store all role titles
+      //console.log("line 213 rolesData", rolesData); 
+      const roles = rolesData.map(
+        (item) => `Role title: ${item.title}, Role ID: ${item.id}`
+      );
 
-  connection.query(query1, (err, data) => {
-    if (err) throw err;
-    // make a new array to store all role titles
-    const roles = data.map((item) => `${item.title}`);
-
-    //display a list as choice includes all managers
-
-    // add ee: first name, last name, role, manager
-    inquirer
-      .prompt([
+      return inquirer.prompt([
         {
           name: "first_name",
           type: "input",
@@ -233,49 +219,74 @@ function AddEmployee() {
         {
           name: "role",
           type: "list",
-          message: "What is the employee's role?",
+          message: "What is the employee's role id?",
           choices: roles,
         },
-      ])
-      .then((answer) => {
-        console.log("answer1",answer);
-        const query2 = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
+      ]);
+    })
+    .then((answer) => {
+      // console.log("answer1", answer); //returns { first_name: 'a', last_name: 'b', role: 'Salesperson' }
+      userInput1 = answer;
+      // display manager id, first name, last name as managers
+      const query2 = `SELECT 
+      manager.id as manager_id,
+      CONCAT(manager.first_name, ' ', manager.last_name) AS manager_name
+      FROM employee
+      LEFT JOIN role ON employee.role_id = role.id
+      LEFT JOIN employee AS manager ON manager.id = employee.manager_id 
+      WHERE manager.id IS NOT NULL
+      GROUP BY manager_id;`;
+      return new Promise((resolve, reject) => {
         connection.query(query2, (err, data) => {
-          if (err) throw err;
-          console.log("@@@", data);
-          // make a new array to store all manager names
-          const managers = data.map(
-            (item) => `${item.first_name} ${item.last_name}`
-          );
-
-          inquirer.prompt([
-            {
-              name: "manager",
-              type: "list",
-              message: "Who is the employee's manager?",
-              choices: [...managers, "None"], // shows undefined and none
-            },
-          ]);
+          if (err) reject(err);
+          else resolve(data);
         });
-      })
-      .then((answer) => {
-        console.log("answer2", answer);
-        // add ee to db based on user input
-        const query = `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`;
-        connection.query(
-          query,
-          [answer.first_name, answer.last_name, answer.role, answer.manager],
-          (err, data) => {
-            if (err) throw err;
-            console.table(data);
-            mainMenu();
-          }
-        );
       });
-  });
+    })
+    .then((managersData) => {
+      //console.log("line 256 @@@", managersData);
+      // make a new array to store all manager names
+      const managers = managersData.map(
+        (item) => `${item.manager_name} ID:${item.manager_id}`
+      );
+
+      return inquirer.prompt([
+        {
+          name: "manager",
+          type: "list",
+          message: "Which manager is the employee under?",
+          choices: [...managers, "None"],
+        },
+      ]);
+    })
+    .then((answer) => {
+      //console.log("line 274 answer2", userInput1,answer);
+      // add ee to db based on user input
+      const query = `INSERT INTO employee 
+      (first_name, last_name, role_id, manager_id) 
+      VALUES (?, ?, ?, ?)`;
+      // console.log("answer3", answer); // returns manager's role by user input
+      connection.query(
+        query,
+        [
+          userInput1.first_name,
+          userInput1.last_name,
+          userInput1.role.split("ID: ")[1],
+          answer.manager.split("ID:")[1],
+        ],
+        //console.log("###",[userInput1.first_name, userInput1.role.split('ID: ')[1], answer.manager.split('ID:')[1]]),
+        (err, data) => {
+          if (err) throw err;
+          console.log(
+            `Added ${userInput1.first_name} ${userInput1.last_name} to the database`
+          );
+          ViewAllEmployees();
+        }
+      );
+    });
 }
 
-// ⚠️============ TODO: remove employee: NOT removed===========
+// ============ remove employee: NOT removed===========
 function RemoveEmployee() {
   // remove ee: first name, last name, role, manager
   // --- ee array needed, for user to remove from
@@ -309,32 +320,78 @@ function RemoveEmployee() {
         choices: [...employees],
       })
       .then((answer) => {
+        // console.log("line 337 answer", answer.employee.split(' ')[0]);
         // delete ee from db based on user input
         const query = `DELETE FROM employee WHERE first_name = ? AND last_name = ?`;
-        console.table(`You have removed ${answer.employee} from the database.`);
-        ViewAllEmployees();
+        connection.query(query,
+          [answer.employee.split(' ')[0],answer.employee.split(' ')[1]], 
+          (err, data)=> {
+          // console.log("line 340", data);
+          if (err) throw err;
+          console.log(`You have removed ${answer.employee} from the database.`);
+          ViewAllEmployees();
+        });
       });
   });
 }
 
 // ⚠️========== TODO: update employee role ==========
+// WHEN choose to update an employee role
+// THEN prompted to select an employee to update and their new role and this information is updated in the database
 function UpdateEmployeeRole() {
-  // update ee role: first name, last name, role, manager
-  // --- select all ee from table and map to an array, for user to update from
-  const queryEE = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;`;
-  connection.query(queryEE, (err, data) => {
-    if (err) throw err;
-    // make a new array to store all ee names
+  // show all ee's as a list
+  const query = `SELECT first_name, last_name FROM employee;`;
+  connection.query(query, (err, data) => {
+    // map all ee's to an array
     const employees = data.map(
       (item) => `${item.first_name} ${item.last_name}`
     );
-    // --- new prompt to give hint for user's input needed
-    inquirer.prompt({
-      name: "employee",
-      type: "list",
-      message: "Which employee would you like to update?",
-      choices: employees,
-    });
+    // prompt user to select an ee to update
+    inquirer
+      .prompt([
+        {
+          name: "employee",
+          type: "list",
+          message: "Which employee would you like to update?",
+          choices: employees,
+        },
+      ])
+      .then((answer) => {
+        // get the selected employee's first and last name
+        const selectedEmployee = answer.employee.split(" ");
+        const firstName = selectedEmployee[0];
+        const lastName = selectedEmployee[1];
+
+        // query the role table to get all available roles
+        const query = `SELECT title FROM role;`;
+        connection.query(query, (err, data) => {
+          // map all roles to an array
+          const roles = data.map((item) => item.title);
+          // prompt the user to select a new role
+          inquirer
+            .prompt({
+              name: "role",
+              type: "list",
+              message: "What is the employee's new role?",
+              choices: roles,
+            })
+            .then((answer) => {
+              // update the employee's role in the database
+              const query = `UPDATE employee SET role = ? WHERE first_name = ? AND last_name = ?`;
+              connection.query(
+                query,
+                [answer.role, firstName, lastName],
+                (err, data) => {
+                  if (err) throw err;
+                  console.log(
+                    `Successfully updated ${firstName} ${lastName}'s role to ${answer.role}.`
+                  );
+                  mainMenu();
+                }
+              );
+            });
+        });
+      });
   });
 }
 
