@@ -200,7 +200,7 @@ function AddEmployee() {
     })
     .then((rolesData) => {
       // make a new array to store all role titles
-      //console.log("line 213 rolesData", rolesData); 
+      //console.log("line 213 rolesData", rolesData);
       const roles = rolesData.map(
         (item) => `Role title: ${item.title}, Role ID: ${item.id}`
       );
@@ -323,21 +323,23 @@ function RemoveEmployee() {
         // console.log("line 337 answer", answer.employee.split(' ')[0]);
         // delete ee from db based on user input
         const query = `DELETE FROM employee WHERE first_name = ? AND last_name = ?`;
-        connection.query(query,
-          [answer.employee.split(' ')[0],answer.employee.split(' ')[1]], 
-          (err, data)=> {
-          // console.log("line 340", data);
-          if (err) throw err;
-          console.log(`You have removed ${answer.employee} from the database.`);
-          ViewAllEmployees();
-        });
+        connection.query(
+          query,
+          [answer.employee.split(" ")[0], answer.employee.split(" ")[1]],
+          (err, data) => {
+            // console.log("line 340", data);
+            if (err) throw err;
+            console.log(
+              `You have removed ${answer.employee} from the database.`
+            );
+            ViewAllEmployees();
+          }
+        );
       });
   });
 }
 
-// ⚠️========== TODO: update employee role ==========
-// WHEN choose to update an employee role
-// THEN prompted to select an employee to update and their new role and this information is updated in the database
+// ========== update employee role ==========
 function UpdateEmployeeRole() {
   // show all ee's as a list
   const query = `SELECT first_name, last_name FROM employee;`;
@@ -376,23 +378,29 @@ function UpdateEmployeeRole() {
               choices: roles,
             })
             .then((answer) => {
+              // get the selected role's id
+              const query = `SELECT id FROM role WHERE title = ?`;
+              connection.query(query, [answer.role], (err, data) => {
+                if (err) throw err;
+                const roleId = data[0].id;
               // update the employee's role in the database
-              const query = `UPDATE employee SET role = ? WHERE first_name = ? AND last_name = ?`;
+              const query = `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`;
               connection.query(
                 query,
-                [answer.role, firstName, lastName],
+                [roleId, firstName, lastName],
                 (err, data) => {
                   if (err) throw err;
                   console.log(
                     `Successfully updated ${firstName} ${lastName}'s role to ${answer.role}.`
                   );
-                  mainMenu();
+                  ViewAllEmployees();
                 }
               );
             });
         });
       });
   });
+});
 }
 
 // ⚠️========== TODO: update employee manager ==========
