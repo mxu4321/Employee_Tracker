@@ -17,8 +17,8 @@ const mainMenu = () => {
         "View All Employees By Manager", // ✅
         "Add Employee", // ✅
         "Remove Employee", // ✅
-        "Update Employee Role",
-        "Update Employee Manager",
+        "Update Employee Role", // ✅
+        "Update Employee Manager", // ✅
         "View All Roles", // ✅
         "Add Role", // ✅
         "Remove Role", // ✅
@@ -98,7 +98,23 @@ const mainMenu = () => {
 // =============view all employees===========
 function ViewAllEmployees() {
   // all ees: id, first name, last name, title, department, salary, manager
-  const query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id;`;
+  const query = `SELECT 
+  employee.id, 
+  employee.first_name, 
+  employee.last_name, 
+  role.title, 
+  department.name AS 
+  department, 
+  role.salary, 
+  CONCAT(manager.first_name, ' ', manager.last_name) AS 
+  manager FROM 
+  employee 
+  LEFT JOIN role ON 
+  employee.role_id = role.id 
+  LEFT JOIN department ON 
+  role.department_id = department.id 
+  LEFT JOIN employee manager ON 
+  manager.id = employee.manager_id;`;
   // show result in the terminal by console.table
   connection.query(query, (err, data) => {
     if (err) throw err;
@@ -383,63 +399,98 @@ function UpdateEmployeeRole() {
               connection.query(query, [answer.role], (err, data) => {
                 if (err) throw err;
                 const roleId = data[0].id;
-              // update the employee's role in the database
-              const query = `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`;
+                // update the employee's role in the database
+                const query = `UPDATE employee SET role_id = ? WHERE first_name = ? AND last_name = ?`;
+                connection.query(
+                  query,
+                  [roleId, firstName, lastName],
+                  (err, data) => {
+                    if (err) throw err;
+                    console.log(
+                      `Successfully updated ${firstName} ${lastName}'s role to ${answer.role}.`
+                    );
+                    ViewAllEmployees();
+                  }
+                );
+              });
+            });
+        });
+      });
+  });
+}
+
+// ========== update employee manager ==========
+function UpdateEmployeeManager() {
+  // show all ee's as a list
+  const query = `SELECT first_name, last_name FROM employee;`;
+  connection.query(query, (err, data) => {
+  // map all ee's to an array
+  const employees = data.map(
+    (item) => `${item.first_name} ${item.last_name}`
+  );
+  // prompt user to select an ee to update
+  inquirer
+    .prompt([
+      {
+        name: "employee",
+        type: "list",
+        message: "Which employee would you like to update?",
+        choices: employees,
+      },
+    ])
+    .then((answer) => {
+      // console.log("line 400+ &&&", answer); // returns the selected employee
+      // get the selected employee's first and last name
+      const selectedEmployee = answer.employee.split(" ");
+      const firstName = selectedEmployee[0];
+      const lastName = selectedEmployee[1];
+ 
+      // query all managers 
+      const query = `SELECT 
+      first_name, last_name 
+      FROM employee 
+      WHERE manager_id IS NULL 
+      AND first_name != '${firstName}' 
+      AND last_name != '${lastName}';`;
+      connection.query(query, (err, data) => {
+        //console.log("line 400+ ***", data); 
+        // map all managers to an array
+        const managers = data.map(
+          (item) => `${item.first_name} ${item.last_name}`
+        );
+        // prompt the user to select a new manager
+        inquirer
+          .prompt({
+            name: "manager",
+            type: "list",
+            message: "Who is the employee's new manager?",
+            choices: managers,
+          })
+          .then((answer) => {
+            // get the selected manager's id
+            const query = `SELECT id FROM employee WHERE first_name = ? AND last_name = ?`;
+            connection.query(query, [answer.manager.split(" ")[0], answer.manager.split(" ")[1]], (err, data) => {
+              if (err) throw err;
+              const managerId = data[0].id;
+              // update the employee's manager in the database
+              const query = `UPDATE employee SET manager_id = ? WHERE first_name = ? AND last_name = ?`;
               connection.query(
                 query,
-                [roleId, firstName, lastName],
+                [managerId, firstName, lastName],
                 (err, data) => {
                   if (err) throw err;
                   console.log(
-                    `Successfully updated ${firstName} ${lastName}'s role to ${answer.role}.`
+                    `Successfully updated ${firstName} ${lastName}'s manager to ${answer.manager}.`
                   );
                   ViewAllEmployees();
                 }
               );
             });
-        });
-      });
+          });
+      }
+    );
   });
 });
-}
-
-// ⚠️========== TODO: update employee manager ==========
-function UpdateEmployeeManager() {
-  // updated ee manager: first name, last name, role, department, salary
-  // --- select all managers from ee table and map to an array, for user to update from
-  const queryManager = `SELECT first_name, last_name FROM employee WHERE manager_id IS NULL;`;
-  connection
-    .query(queryManager, (err, data) => {
-      if (err) throw err;
-      // make a new array to store all manager names
-      const managers = data.map(
-        (item) => `${item.first_name} ${item.last_name}`
-      );
-      // --- new prompt to give hint for user's input needed
-      inquirer.prompt({
-        name: "manager",
-        type: "list",
-        message: "Which manager would you like to update?",
-        choices: managers,
-      });
-    })
-    .then((answer) => {
-      // console.log(answer);
-      switch (answer.manager) {
-        case "Marketing":
-          return myViewEmployeesByDepartment("Marketing");
-        case "Accounting":
-          return myViewEmployeesByDepartment("Accounting");
-        case "Engineering":
-          return myViewEmployeesByDepartment("Engineering");
-        case "Human Resources":
-          return myViewEmployeesByDepartment("Human Resources");
-        case "Legal":
-          return myViewEmployeesByDepartment("Legal");
-      }
-    });
-
-  function myViewEmployeesByDepartment(department) {}
 }
 
 // ==========view all roles===========
